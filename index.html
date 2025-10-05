@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>VOLT Dashboard</title>
+<style>
+/* ------------------ Intro / Loader styles ------------------ */
+:root{--brand-gradient: linear-gradient(135deg,#ff5c8a,#7b2ff7,#40e0d0); --turquoise: #06b6d4; --turquoise-2:#00bcd4;}
+#voltus-loader{
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center,#060d1c 40%,#020611 100%);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  z-index:9999;
+  /* optional animation: you can adjust durations below */
+  animation: none;
+}
+.voltus-logo{display:flex;align-items:center;gap:14px;animation:fadeInLogo 1s ease forwards;}
+@keyframes fadeInLogo{from{opacity:0;transform:scale(0.5) rotate(-15deg)}to{opacity:1;transform:scale(1) rotate(0deg)}}
+.voltus-mark{width:70px;height:70px;border-radius:18px;background:var(--brand-gradient);background-size:300% 300%;animation:spinMark 2.4s ease-in-out infinite alternate,glowPulse 2s ease-in-out infinite alternate,colorShift 6s linear infinite;box-shadow:0 0 18px rgba(255,92,138,0.6)}
+@keyframes spinMark{0%{transform:rotate(-180deg) scale(0.8)}100%{transform:rotate(180deg) scale(1.05)}}
+@keyframes glowPulse{0%{box-shadow:0 0 12px rgba(255,92,138,0.5)}100%{box-shadow:0 0 30px rgba(64,224,208,0.8)}}
+@keyframes colorShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.voltus-text{font-size:2.6rem;font-weight:800;letter-spacing:-1px;background:linear-gradient(90deg,#ff9a3c,#ff5c8a,#40e0d0);background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:textGlow 4s linear infinite}
+@keyframes textGlow{0%{background-position:0% 50%;text-shadow:0 0 10px rgba(255,92,138,0.5)}50%{background-position:100% 50%;text-shadow:0 0 20px rgba(64,224,208,0.6)}100%{background-position:0% 50%;text-shadow:0 0 10px rgba(255,92,138,0.5)}}
+
+/* ------------------ Main visibility helpers ------------------ */
+/* main is invisible and non-interactive until we add .show */
+#mainApp {
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 420ms ease, visibility 420ms;
+  pointer-events: none;
+}
+#mainApp.show {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ------------------ Your original dashboard CSS (unchanged content) ------------------ */
+ body {
+  margin: 0;
+  padding: 20px;
+  font-family: Segoe UI, Arial, sans-serif;
+  background: #f5f6f8;
+  color: #111827;
+  transition: background 0.3s;
+}
+
+.wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  transition: all 0.3s;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 22px;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 6px 16px rgba(15,23,42,0.06);
+  margin-bottom: 26px;
+  transition: all 0.3s;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: linear-gradient(135deg,#ff9a3c,#ff5c8a);
+  box-shadow: 0 2px 8px rgba(123,47,247,0.12);
+  transition: all 0.3s;
+}
+
+.logo-mark:hover {
+  transform: scale(1.1);
+}
+
+.logo-text {
+  font-weight: 800;
+  font-size: 20px;
+  color: #7b2ff7;
+}
+
+.nav-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-neutral {
+  background: #fff;
+  border: 1px solid #eee;
+  padding: 8px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-neutral:hover {
+  background: #f0f0f0;
+  transform: scale(1.05);
+}
+
+.toggle-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #111827;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.toggle-circle:hover {
+  transform: scale(1.1);
+}
+
+.card-wide {
+  background: #fff;
+  padding: 36px 28px;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(15,23,42,0.07);
+  text-align: center;
+  margin-bottom: 22px;
+  transition: all 0.3s;
+}
+
+.card-wide:hover {
+  transform: translateY(-3px);
+}
+
+.feeling-title {
+  font-size: 20px;
+  margin-bottom: 18px;
+  font-weight: 600;
+}
+
+.pill-row {
+  display: inline-flex;
+  gap: 14px;
+}
+
+.pill {
+  border: none;
+  padding: 9px 22px;
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.pill:hover {
+  opacity: 0.85;
+  transform: scale(1.05);
+}
+
+.pill.blue {
+  background: #2563eb;
+}
+
+.pill.gray {
+  background: #6b7280;
+}
+
+.pill.green {
+  background: #16a34a;
+}
+
+.reminders {
+  background: #fff;
+  padding: 22px;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(15,23,42,0.07);
+  margin-bottom: 28px;
+  transition: all 0.3s;
+}
+
+.reminders:hover {
+  transform: translateY(-2px);
+}
+
+.reminders .header {
+  text-align: center;
+  font-weight: 700;
+  margin-bottom: 18px;
+  font-size: 18px;
+}
+
+.reminder-grid {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.reminder-col {
+  flex: 1;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+input[type="time"] {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #e6e7ea;
+  transition: all 0.3s;
+}
+
+input[type="time"]:focus {
+  border-color: #7b2ff7;
+  box-shadow: 0 0 6px rgba(123,47,247,0.3);
+}
+
+input[type="number"] {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #e6e7ea;
+  transition: all 0.3s;
+}
+
+input[type="number"]:focus {
+  border-color: #7b2ff7;
+  box-shadow: 0 0 6px rgba(123,47,247,0.3);
+}
+
+.reminder-actions {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.btn-purple {
+  flex: 1;
+  background: linear-gradient(90deg,#7b2ff7,#b24cff);
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-purple:hover {
+  opacity: 0.85;
+  transform: scale(1.05);
+}
+
+.btn-blue {
+  flex: 1;
+  background: linear-gradient(90deg,#1d4ed8,#2563eb);
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-blue:hover {
+  opacity: 0.85;
+  transform: scale(1.05);
+}
+
+.three-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+  margin-bottom: 22px;
+  transition: all 0.3s;
+}
+
+.card {
+  background: #fff;
+  padding: 18px;
+  border-radius: 18px;
+  box-shadow: 0 6px 16px rgba(15,23,42,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+}
+
+.card-title {
+  font-weight: 700;
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+
+.workout-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+select {
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #e7e7ea;
+  transition: all 0.3s;
+}
+
+select:hover,
+select:focus {
+  border-color: #7b2ff7;
+  box-shadow: 0 0 6px rgba(123,47,247,0.2);
+}
+
+.stats {
+  text-align: right;
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.stat-num {
+  display: block;
+  font-size: 22px;
+}
+
+.video-box {
+  height: 190px;
+  background: #000;
+  border-radius: 12px;
+  border: 6px solid rgba(0,0,0,0.04);
+  transition: all 0.3s;
+}
+
+.video-box:hover {
+  transform: scale(1.02);
+}
+
+.workout-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.btn-outline {
+  background: #efefef;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-outline:hover {
+  background: #e0e0e0;
+  transform: scale(1.05);
+}
+
+.btn-save {
+  background: #2563eb;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-save:hover {
+  opacity: 0.85;
+  transform: scale(1.05);
+}
+
+.center-widget input {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #e7e7ea;
+  transition: all 0.3s;
+}
+
+.go-btn,
+.gen-btn,
+.ask-btn,
+.analyze-btn {
+  cursor: pointer;
+  border: none;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 10px;
+  transition: all 0.3s;
+}
+
+.go-btn:hover,
+.gen-btn:hover,
+.ask-btn:hover,
+.analyze-btn:hover {
+  transform: scale(1.05);
+}
+
+.go-btn {
+  background: #9b4cff;
+}
+
+.analyze-btn {
+  background: linear-gradient(90deg,#0f9b4a,#f13b8a);
+  width: 100%;
+}
+
+.gen-btn,
+.ask-btn {
+  background: #16a34a;
+}
+
+.two-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  margin-top: 18px;
+  transition: all 0.3s;
+}
+
+.predictor p {
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.predictor .highlight {
+  color: #059669;
+  font-weight: 800;
+}
+
+.challenge .btn-cta {
+  width: 80%;
+  padding: 14px;
+  border-radius: 12px;
+  background: linear-gradient(90deg,#ff7a18,#ffb347);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 14px 40px rgba(255,122,24,0.12);
+  transition: all 0.3s;
+}
+
+.challenge .btn-cta:hover {
+  transform: scale(1.05);
+}
+
+.history {
+  background: #fff;
+  padding: 18px 20px;
+  border-radius: 16px;
+  box-shadow: 0 6px 16px rgba(15,23,42,0.06);
+  margin-top: 22px;
+  transition: all 0.3s;
+}
+
+.history:hover {
+  transform: translateY(-2px);
+}
+
+/* ------------------ Customer / Testimonials Section ------------------ */
+/* Positioned before history (keeps original markup intact) */
+.testimonials {
+  margin: 24px 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+.testimonials .header-row {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:8px;
+}
+
+.testimonials h3 {
+  margin:0;
+  font-size:20px;
+  color:#0f172a;
+  font-weight:800;
+}
+
+/* carousel wrapper */
+.testimonial-carousel {
+  position: relative;
+  overflow: hidden;
+  border-radius:14px;
+  background: linear-gradient(180deg, rgba(255,255,255,1), rgba(245,251,252,1));
+  padding: 22px;
+  box-shadow: 0 12px 40px rgba(3,12,30,0.04);
+  display:flex;
+  align-items:center;
+}
+
+/* track */
+.testimonial-track {
+  display:flex;
+  gap:18px;
+  transition: transform 520ms cubic-bezier(.2,.9,.3,1), opacity 420ms ease;
+  will-change: transform;
+}
+
+/* individual card */
+.testimonial-card {
+  min-width: 320px;
+  max-width: 420px;
+  background: #fff;
+  border-radius:12px;
+  padding:16px;
+  box-shadow: 0 8px 22px rgba(3,12,30,0.06);
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+  transform-origin:center;
+  transition: transform 420ms ease, box-shadow 320ms ease;
+}
+
+/* highlighted center card scale */
+.testimonial-card.center {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 18px 40px rgba(3,12,30,0.09);
+}
+
+/* avatar */
+.testimonial-avatar {
+  width:64px;height:64px;border-radius:12px;flex:0 0 64px;overflow:hidden;border:4px solid rgba(6,182,212,0.12);
+  display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--turquoise),var(--turquoise-2));
+  color:white;font-weight:800;font-size:18px;
+}
+
+/* content */
+.testimonial-content { flex:1; }
+.testimonial-content p { margin:0 0 8px 0; color:#0b1220; line-height:1.45; }
+.testimonial-meta { font-size:13px; color:#6b7280; font-weight:700; }
+
+/* stars */
+.stars { color: #f59e0b; margin-bottom:8px; }
+
+/* controls */
+.testimonial-controls {
+  position:absolute;
+  right:14px;
+  bottom:14px;
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.t-btn {
+  width:36px;height:36px;border-radius:10px;border:none;background:#e6f7f8;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-weight:800;
+  box-shadow: 0 6px 18px rgba(3,12,30,0.04);
+}
+.t-btn:hover { transform:translateY(-3px); }
+
+.testimonial-dots {
+  position:absolute;
+  left:14px;
+  bottom:18px;
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.dot { width:10px;height:10px;border-radius:999px;background:rgba(11,17,26,0.08);cursor:pointer; }
+.dot.active { background: var(--turquoise); box-shadow: 0 6px 18px rgba(6,182,212,0.12); transform:scale(1.1); }
+
+/* responsive */
+@media (max-width: 900px) {
+  .testimonial-card { min-width: 88%; }
+  .testimonial-controls { right:10px; bottom:10px; }
+}
+
+/* adapt colors in dark mode: the existing theme toggle script modifies card backgrounds inline — to be safe we'll override for dark with prefers-color-scheme if needed */
+@media (prefers-color-scheme: dark) {
+  .testimonial-carousel { background: linear-gradient(180deg, rgba(8,12,16,0.6), rgba(6,10,14,0.6)); }
+  .testimonial-card { background: rgba(6,10,14,0.7); color: #dbeafe; box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
+  .testimonial-content p { color: #dbeafe; }
+  .testimonial-meta { color: #9fb2c1; }
+  .dot { background: rgba(255,255,255,0.06); }
+}
+
+/* ensure rest media queries same as original */
+@media (max-width: 1100px) {
+  .three-grid,
+  .two-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+<body>
+  <!-- Loader / Intro -->
+  <div id="voltus-loader" aria-hidden="true">
+    <div class="voltus-logo" role="img" aria-label="VOLT logo">
+      <div class="voltus-mark"></div>
+      <div class="voltus-text">VOLT</div>
+    </div>
+  </div>
+
+  <!-- Main Dashboard (kept exactly as you provided) -->
+  <div id="mainApp" aria-hidden="true">
+    <div class="wrap">
+      <header>
+        <div class="brand"><div class="logo-mark"></div><div class="logo-text">VOLT</div></div>
+        <div class="nav-actions"><div class="btn-neutral">Profile</div><div class="toggle-circle" id="themeToggle"></div></div>
+      </header>
+
+      <section class="card-wide">
+        <div class="feeling-title">How are you feeling today?</div>
+        <div class="pill-row">
+          <button class="pill blue">Energetic</button>
+          <button class="pill gray">Tired</button>
+          <button class="pill green">Stressed</button>
+        </div>
+      </section>
+
+      <section class="reminders">
+        <div class="header">Reminders</div>
+        <div class="reminder-grid">
+          <div class="reminder-col"><label for="gym-time">Gym Time</label><input type="time" id="gym-time"></div>
+          <div class="reminder-col"><label for="water-interval">Water Interval (min)</label><input type="number" value="60" id="water-interval"></div>
+        </div>
+        <div class="reminder-actions">
+          <button class="btn-purple">Set Gym Reminder</button>
+          <button class="btn-blue">Start Water Reminder</button>
+        </div>
+      </section>
+
+      <section class="three-grid">
+        <div class="card">
+          <div class="card-title">Workout Tracker</div>
+          <div class="workout-top">
+            <div>
+              <label>Exercise</label><br>
+              <select><option>Squat</option><option>Push-up</option><option>Plank</option></select>
+              <div style="margin-top:8px;color:#6b7280;font-size:13px;">Start the camera to begin.</div>
+            </div>
+            <div class="stats"><div style="font-size:12px;">Reps</div><div class="stat-num">0</div><div style="font-size:12px;margin-top:8px;">Time</div><div style="font-weight:800;">00:00</div></div>
+          </div>
+          <div class="video-box"></div>
+          <div class="workout-actions"><button class="btn-purple" style="flex:1">Start Camera</button><button class="btn-outline">Reset</button><button class="btn-save">Save Set</button></div>
+          <div style="margin-top:8px;color:#6b7280;font-weight:600;">Badges</div>
+        </div>
+
+        <div class="card center-widget">
+          <div class="card-title">Nutrition Lookup</div>
+          <div style="display:flex;gap:8px;margin-bottom:12px;"><input type="text" placeholder="e.g., '1 cup of rice'"><button class="go-btn">Go</button></div>
+          <div style="text-align:center;color:#6b7280;margin:6px 0;">OR</div>
+          <button class="analyze-btn">Analyze Meal from Image</button>
+          <div style="margin-top:14px;border-top:1px solid #f0f0f0;padding-top:8px;">
+            <div style="font-weight:700;margin-bottom:8px;">7-Day AI Meal Planner</div>
+            <div style="display:flex;gap:10px;"><input type="text" placeholder="Daily calories (e.g., 2200)" style="flex:1;"><button class="gen-btn">Generate</button></div>
+          </div>
+        </div>
+
+        <div class="card ai-coach">
+          <div class="card-title">AI Fitness Coach</div>
+          <div class="coach-panel" style="background:#f3f4f6;border-radius:10px;min-height:160px;"></div>
+          <div style="display:flex;gap:8px;margin-top:10px;"><input type="text" placeholder="Ask about fitness..." style="flex:1;padding:10px;border-radius:10px;border:1px solid #e7e7ea;"><button class="ask-btn">Ask</button></div>
+          <div style="margin-top:14px;font-weight:700;">Progress Dashboard</div>
+          <div style="color:#6b7280;font-size:13px;margin-top:6px;">Shows total reps per exercise for the last 14 days.</div>
+        </div>
+      </section>
+
+      <section class="two-grid">
+        <div class="card predictor"><div class="card-title">Progress Predictor</div><p>Based on your activity, you're on track to lose <span class="highlight">2.1 kg</span> in the next 4 weeks!</p></div>
+        <div class="card challenge"><div class="card-title">Rewards & Challenges</div><p style="color:#6b7280;">You've earned <strong style="color:#ff8a4b">1,250 points</strong> this week! Click below for a new challenge.</p><div style="display:flex;justify-content:center;margin-top:18px;"><button class="btn-cta">Generate New Challenge</button></div></div>
+      </section>
+
+      <!-- ====== New CUSTOMER / TESTIMONIALS Section (added as requested) ====== -->
+      <section class="testimonials" aria-label="Customer testimonials">
+        <div class="header-row">
+          <h3>What our users say</h3>
+          <div style="color:#6b7280;font-weight:700">Real stories • Real results</div>
+        </div>
+
+        <div class="testimonial-carousel" id="testimonialCarousel" aria-live="polite">
+          <div class="testimonial-track" id="testimonialTrack">
+            <!-- Card 1 -->
+            <div class="testimonial-card">
+              <div class="testimonial-avatar" aria-hidden="true">AS</div>
+              <div class="testimonial-content">
+                <div class="stars">★★★★★</div>
+                <p>"VOLT completely changed the way I train. The AI coach keeps me consistent and the meal planner saved me so much time."</p>
+                <div class="testimonial-meta">Asha S. • 2 months with VOLT</div>
+              </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="testimonial-card">
+              <div class="testimonial-avatar" aria-hidden="true">RK</div>
+              <div class="testimonial-content">
+                <div class="stars">★★★★★</div>
+                <p>"Love the workout tracker — camera feedback is so helpful. UI is clean and motivating."</p>
+                <div class="testimonial-meta">Rohit K. • Personal Trainer</div>
+              </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="testimonial-card">
+              <div class="testimonial-avatar" aria-hidden="true">NS</div>
+              <div class="testimonial-content">
+                <div class="stars">★★★★★</div>
+                <p>"The challenges keep me engaged. I actually enjoy logging workouts now — and the rewards are motivating."</p>
+                <div class="testimonial-meta">Nisha S. • 6 weeks</div>
+              </div>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="testimonial-card">
+              <div class="testimonial-avatar" aria-hidden="true">PR</div>
+              <div class="testimonial-content">
+                <div class="stars">★★★★★</div>
+                <p>"Gym reminders and water reminders — small features that make a huge difference. Great app."</p>
+                <div class="testimonial-meta">Priyanshu R. • Early user</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- dots -->
+          <div class="testimonial-dots" id="testimonialDots" aria-hidden="false"></div>
+
+          <!-- controls -->
+          <div class="testimonial-controls">
+            <button class="t-btn" id="prevTest" aria-label="Previous testimonial">‹</button>
+            <button class="t-btn" id="nextTest" aria-label="Next testimonial">›</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== End testimonials, continue original content ====== -->
+      <section class="history"><div style="font-weight:700;font-size:16px;margin-bottom:8px;">Workout History</div><div style="color:#6b7280;">No history yet. Your past workouts will appear here.</div></section>
+    </div>
+  </div>
+
+<script>
+/*
+  Loader + reveal logic (keeps original behavior but more robust)
+*/
+window.addEventListener('load', function(){
+  const loader = document.getElementById('voltus-loader');
+  const main = document.getElementById('mainApp');
+
+  // how long the intro stays visible (ms). Adjust as needed.
+  const introDuration = 1800;
+
+  setTimeout(() => {
+    if (loader) {
+      loader.style.transition = 'opacity 420ms ease';
+      loader.style.opacity = '0';
+      setTimeout(() => {
+        if (loader.parentNode) loader.parentNode.removeChild(loader);
+        main.classList.add('show');
+        main.setAttribute('aria-hidden', 'false');
+      }, 460);
+    } else {
+      main.classList.add('show');
+      main.setAttribute('aria-hidden', 'false');
+    }
+  }, introDuration);
+
+  // Theme toggle: keep old behavior but ensure testimonials look good
+  const themeToggle = document.getElementById('themeToggle');
+  if (themeToggle) {
+    let dark = false;
+    themeToggle.addEventListener('click', () => {
+      dark = !dark;
+      if (dark) {
+        document.body.style.background = '#0b1020';
+        document.body.style.color = '#e6eef6';
+        document.querySelectorAll('.card, header, .reminders, .card-wide, .testimonial-carousel').forEach(el => {
+          el.style.background = '#071029';
+          el.style.boxShadow = '0 8px 28px rgba(2,6,23,0.6)';
+          el.style.color = '#dfeef8';
+        });
+        // avatars: darker border
+        document.querySelectorAll('.testimonial-avatar').forEach(a=> a.style.borderColor = 'rgba(6,182,212,0.18)');
+      } else {
+        document.body.style.background = '#f5f6f8';
+        document.body.style.color = '#111827';
+        document.querySelectorAll('.card, header, .reminders, .card-wide, .testimonial-carousel').forEach(el => {
+          el.style.background = '';
+          el.style.boxShadow = '';
+          el.style.color = '';
+        });
+        document.querySelectorAll('.testimonial-avatar').forEach(a=> a.style.borderColor = 'rgba(6,182,212,0.12)');
+      }
+    });
+  }
+
+  // Start Camera placeholder (no actual camera access here) - kept intact
+  document.querySelectorAll('.btn-purple').forEach(btn => {
+    if (btn.textContent.trim().toLowerCase().includes('start camera')) {
+      btn.addEventListener('click', () => {
+        const vb = document.querySelector('.video-box');
+        if (vb) vb.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#fff;font-weight:700;">Camera would start here (placeholder)</div>';
+        btn.textContent = 'Camera Started';
+      });
+    }
+  });
+});
+
+/* ---------------- Testimonial Carousel Logic ---------------- */
+(function(){
+  const track = document.getElementById('testimonialTrack');
+  const dotsWrap = document.getElementById('testimonialDots');
+  const prevBtn = document.getElementById('prevTest');
+  const nextBtn = document.getElementById('nextTest');
+  const carousel = document.getElementById('testimonialCarousel');
+
+  if (!track) return; // nothing to do
+
+  const cards = Array.from(track.children);
+  let index = 0;
+  let autoplay = true;
+  let autoplayTimer = null;
+  const AUTOPLAY_INTERVAL = 4200;
+  const CARD_GAP = 18; // matches CSS gap
+
+  // build dots
+  const pageCount = cards.length;
+  for (let i=0;i<pageCount;i++){
+    const d = document.createElement('div');
+    d.className = 'dot' + (i===0 ? ' active' : '');
+    d.dataset.index = i;
+    d.addEventListener('click', ()=> { goToIndex(i); resetAutoplay(); });
+    dotsWrap.appendChild(d);
+  }
+
+  function update() {
+    // calculate translateX so that current index is centered if possible.
+    // We'll show multiple cards on wide screens; simple approach: translate by index * (cardWidth + gap)
+    const card = cards[0];
+    if (!card) return;
+    const cardStyle = getComputedStyle(card);
+    const cardWidth = card.getBoundingClientRect().width;
+    const gap = CARD_GAP;
+    const visibleWidth = carousel.getBoundingClientRect().width;
+    // center formula:
+    const trackWidth = (cardWidth + gap) * cards.length - gap;
+    let offset = (cardWidth + gap) * index;
+    // center the chosen card in the carousel if there's enough space
+    const centered = offset - (visibleWidth/2 - cardWidth/2);
+    // clamp
+    const maxOffset = Math.max(0, trackWidth - visibleWidth);
+    const clamped = Math.min(Math.max(0, centered), maxOffset);
+    track.style.transform = `translateX(${-clamped}px)`;
+
+    // center class highlight
+    cards.forEach((c,i)=> c.classList.toggle('center', i===index));
+
+    // dots
+    Array.from(dotsWrap.children).forEach((d,i)=> d.classList.toggle('active', i===index));
+  }
+
+  function goToIndex(i){
+    index = (i + cards.length) % cards.length;
+    update();
+  }
+
+  prevBtn && prevBtn.addEventListener('click', ()=> { goToIndex(index - 1); resetAutoplay(); });
+  nextBtn && nextBtn.addEventListener('click', ()=> { goToIndex(index + 1); resetAutoplay(); });
+
+  // autoplay
+  function startAutoplay(){
+    stopAutoplay();
+    autoplayTimer = setInterval(()=> {
+      if (!autoplay) return;
+      index = (index + 1) % cards.length;
+      update();
+    }, AUTOPLAY_INTERVAL);
+  }
+  function stopAutoplay(){ if (autoplayTimer) { clearInterval(autoplayTimer); autoplayTimer = null; } }
+  function resetAutoplay(){ autoplay = true; stopAutoplay(); startAutoplay(); }
+
+  // pause on hover
+  if (carousel){
+    carousel.addEventListener('mouseenter', ()=> { autoplay = false; stopAutoplay(); });
+    carousel.addEventListener('mouseleave', ()=> { autoplay = true; startAutoplay(); });
+  }
+
+  // window resize -> recompute
+  window.addEventListener('resize', update);
+
+  // initial
+  update();
+  startAutoplay();
+
+  // accessibility: keyboard left/right
+  carousel && carousel.addEventListener('keydown', (e)=> {
+    if (e.key === 'ArrowLeft') { goToIndex(index - 1); resetAutoplay(); }
+    else if (e.key === 'ArrowRight') { goToIndex(index + 1); resetAutoplay(); }
+  });
+
+})();
+</script>
+</body>
+</html>
